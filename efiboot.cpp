@@ -428,6 +428,9 @@ int main(int argc,char * argv[])
     //Get arg
     int arg = -1;
     WCHAR szName[10] = { 0 };
+    TCHAR desc[512] = { 0 };
+    TCHAR partition[64] = { 0 };
+    TCHAR FilePath[1024] = { 0 };
 
     if (!promoteProcessPrivileges(SE_SYSTEM_ENVIRONMENT_NAME, TRUE)) {
     //if(!EnablePrivilege()){
@@ -442,199 +445,17 @@ int main(int argc,char * argv[])
 
     }
 
-    /*
-    if (0 != GetALLDISK(&DevIn)) {
-        wprintf_s(L"调用GetALLDISK出错！");
-        FreeALLDISK(&DevIn);
-        return -1;
-    }
-    HANDLE hdisk = INVALID_HANDLE_VALUE ;
-    PSTORAGE_DEVICE_DESCRIPTOR pDevDesc;
-    STORAGE_PROPERTY_QUERY Query;
-    DWORD dwOutBytes;
 
 
-    Query.PropertyId = StorageDeviceProperty;
-    Query.QueryType = PropertyStandardQuery;
-    
-    pDevDesc = (PSTORAGE_DEVICE_DESCRIPTOR)new BYTE[sizeof(STORAGE_DEVICE_DESCRIPTOR) + 512 - 1];
-    
-    ZeroMemory(pDevDesc, sizeof(STORAGE_DEVICE_DESCRIPTOR) + 512 - 1);
-    pDevDesc->Size = sizeof(STORAGE_DEVICE_DESCRIPTOR) + 512 - 1;
-    //wprintf_s(L"%d", pDevDesc->Size);
-    
-    //struct EFI_Disk_Info efi_disk[1024] = { 0 };
-    //g_efi_disk = efi_disk;
-
-
-
-    GET_LENGTH_INFORMATION disk_len = { 0 };
-    STORAGE_DEVICE_NUMBER diskNumber = { 0 };
-    DWORD sizePar = sizeof(DRIVE_LAYOUT_INFORMATION_EX) + sizeof(PARTITION_INFORMATION_EX) * 128;
-    PDRIVE_LAYOUT_INFORMATION_EX ParTable = (PDRIVE_LAYOUT_INFORMATION_EX)new BYTE[sizePar];
-    ZeroMemory(ParTable, sizePar);
-    int devIndex = 0;
-
-    TCHAR szPathName[MAX_PATH + 1] = { 0 };
-
-    for (devIndex = 0; devIndex < DevIn.szCount; devIndex++) {
-        wprintf_s(L"DiskInfo:%s\n", DevIn.deviceInterfaceDetailData_[devIndex]->DevicePath);
-        hdisk = CreateFile(DevIn.deviceInterfaceDetailData_[devIndex]->DevicePath, 
-            GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 
-            NULL,
-            OPEN_EXISTING, 
-            FILE_ATTRIBUTE_NORMAL, NULL);
-        if (INVALID_HANDLE_VALUE == hdisk) {
-            wprintf_s(L"createfile error! error_code:%d\n", GetLastError());
-            return -1;
-        }
-        if (!DeviceIoControl(hdisk,
-            IOCTL_STORAGE_QUERY_PROPERTY,
-            &Query, sizeof(STORAGE_PROPERTY_QUERY),
-            pDevDesc, pDevDesc->Size,
-            &dwOutBytes,
-            NULL)
-            ){ 
-            wprintf_s(L"DeviceIoControl Error! line:238 Error_Code:%d %d\n", GetLastError(),dwOutBytes);
-            
-            
-            
-        }
-        if (!DeviceIoControl(hdisk, IOCTL_DISK_GET_LENGTH_INFO,
-            NULL,
-            0,
-            &disk_len, sizeof(disk_len), &dwOutBytes, NULL)) {
-
-            wprintf_s(L"DeviceIoControl Error! line:248 Error_Code:%d %d\n", GetLastError(), dwOutBytes); //122是正常的。
-
-        }
-
-        if (!DeviceIoControl(hdisk,
-            IOCTL_STORAGE_GET_DEVICE_NUMBER,
-            NULL,
-            0,
-            &diskNumber,
-            sizeof(STORAGE_DEVICE_NUMBER),
-            &dwOutBytes,
-            NULL)) {
-
-            wprintf_s(L"DeviceIoControl Error! line:272 Error_Code:%d %d\n", GetLastError(), dwOutBytes);
-
-        }
-        dwOutBytes = 0;
-        if (!DeviceIoControl(hdisk,
-            IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
-            NULL,
-            0,
-            ParTable,
-            sizePar,
-            &dwOutBytes,
-            NULL)) {
-
-            wprintf_s(L"DeviceIoControl Error! line:285 Error_Code:%d %d\n", GetLastError(), dwOutBytes);
-
-        }
-
- 
-
-        g_efi_disk[devIndex] = (struct EFI_Disk_Info*)new (struct EFI_Disk_Info);
-        CloseHandle(hdisk);
-        hdisk = INVALID_HANDLE_VALUE;
-        //wprintf_s(L"%d %d\n", dwOutBytes, pDevDesc->Size);
-        char* p_char_string = (char*)pDevDesc;
-        stringstream sz_buffer;
-        g_efi_disk[devIndex]->productor = std::string(&p_char_string[pDevDesc->ProductIdOffset]);
-        g_efi_disk[devIndex]->version = std::string(&p_char_string[pDevDesc->ProductRevisionOffset]);
-        g_efi_disk[devIndex]->vendor = std::string(&p_char_string[pDevDesc->VendorIdOffset]);
-        int buffer_disk_len = disk_len.Length.QuadPart / 1024 / 1024 / 1024;
-        sz_buffer << buffer_disk_len << "GB";
-        g_efi_disk[devIndex]->length = sz_buffer.str();
-        g_efi_disk[devIndex]->number = std::to_string(diskNumber.DeviceNumber);
-        printf_s("Productor:%s\n", g_efi_disk[devIndex]->productor.c_str());
-        printf_s("Version:%s\n", g_efi_disk[devIndex]->version.c_str());
-        printf_s("Vendor:%s\n", g_efi_disk[devIndex]->vendor.c_str());
-        printf_s("Length:%s\n", g_efi_disk[devIndex]->length.c_str());
-        printf_s("Number:%s\n", g_efi_disk[devIndex]->number.c_str());
-
-        wprintf_s(L"===================================================================================\n");
-        wprintf_s(L"ParTable:\n");
-        wprintf_s(L"ParTableType:%d\n",ParTable->PartitionStyle);
-        wprintf_s(L"ParCount:%d\n", ParTable->PartitionCount);
-        
-        wprintf_s(L"Par0:\nParNum:%d\nParName:%s\n", ParTable->PartitionEntry[0].PartitionNumber,ParTable->PartitionEntry[0].Gpt.Name);
-        wprintf_s(L"PatLength:%dMB\n", ParTable->PartitionEntry[0].PartitionLength.QuadPart / 1024 / 1024);
-        wprintf_s(L"ParType:{%04x-%02x-%02x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data1,
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data2,
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data3,
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data4[0],
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data4[1],
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data4[2],
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data4[3],
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data4[4],
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data4[5],
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data4[6],
-            ParTable->PartitionEntry[0].Gpt.PartitionType.Data4[7]);
-        wprintf_s(L"ParGUID:{%04x-%02x-%02x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data1,
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data2,
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data3,
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[0],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[1],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[2],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[3],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[4],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[5],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[6],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[7]);
-        
-        wprintf_s(L"返回的字节数:%d\n", dwOutBytes);
-        //ParTable = { 0 };
-        wprintf_s(L"===================================================================================\n");
-        wsprintf(szPathName, L"\\\\\?\\Volume{%04x-%02x-%02x-%02x%02x-%02x%02x%02x%02x%02x%02x}\\",
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data1,
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data2,
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data3,
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[0],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[1],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[2],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[3],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[4],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[5],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[6],
-            ParTable->PartitionEntry[0].Gpt.PartitionId.Data4[7]);
-        wprintf_s(L"%s\n", szPathName);
-    }
-    delete pDevDesc;
-    FreeALLDISK(&DevIn);
-
-
-    
-    
-    TCHAR volumename[256] = { 0 };
-    TCHAR filesystemname[256] = { 0 };
-    GetVolumeInformation(szPathName, volumename, 256, NULL, NULL, NULL, filesystemname, 256);
-    wprintf_s(L"volumename:%s\n", volumename);
-    wprintf_s(L"filesystemname:%s\n", filesystemname);
-
-    DWORD SectorPerCluster = 0;
-    DWORD BytesPerSector = 0;
-    DWORD NumOfFreeCluster = 0;
-    DWORD TotalNumOfCluster = 0;
-
-    GetDiskFreeSpace(szPathName, &SectorPerCluster, &BytesPerSector, &NumOfFreeCluster, &TotalNumOfCluster);
-    wprintf_s(L"SectorPerCluster:%d\nBytesPerSector:%d\nNumOfFreeCluster:%d\n,TotalNumOfCluster:%d\n", SectorPerCluster,BytesPerSector,NumOfFreeCluster,TotalNumOfCluster);
-    */
-
-    while ((arg=GetOpt(argc, argv))!=ARG_POS_END)
-    {   
+    while ((arg = GetOpt(argc, argv)) != ARG_POS_END) {
         //std::cout << "arg:" << arg << "\n" << std::endl;
-        switch (arg)
-        {
+        switch (arg){
+
         case BOOTORDER:
             std::cout << "BootOrder:" << std::endl;
             EFI_GetBootOrder();
             break;
+
         case BOOTOPTION:
             
             if (strlen(argv[arg_pos]) != 8) {
@@ -648,22 +469,32 @@ int main(int argc,char * argv[])
             EFI_GetBootEntry(szName);
             arg_pos++;
             break;
+
         case ALL:
             std::cout << "ALl\n" << std::endl;
             break;
-        case ADD:
-            std::cout << "ADD Start!\n" << std::endl;
 
+        case ADD:
+
+            std::cout << "ADD Start!\n" << std::endl;
+            MultiByteToWideChar(CP_ACP, 0, argv[arg_pos], strlen(argv[arg_pos]) + 1, desc, 512);
+            arg_pos++;
+            MultiByteToWideChar(CP_ACP, 0, argv[arg_pos], strlen(argv[arg_pos]) + 1, partition, 64);
+            arg_pos++;
+            MultiByteToWideChar(CP_ACP, 0, argv[arg_pos], strlen(argv[arg_pos]) + 1, FilePath, 1024);
+
+            efi_init();
+            GetBootList();
+
+            MakeMediaBootOption(0, desc, partition, FilePath);
             std::cout << "ADD Done!\n" << std::endl;
+            break;
+        
         default:
             break;
         }
-    }
+     }
 
-    /*
-    for (int freeIndex = 0; freeIndex < devIndex; freeIndex++) {
-       delete g_efi_disk[freeIndex];
-    }*/
 
     return 0;
 #ifdef D_TEST

@@ -1,8 +1,30 @@
 ﻿cl : 命令行 warning D9025: 正在重写“/sdl”(用“/GS-”)
+  dbg.cpp
+  DeviceDisk.cpp
+C:\Users\Big-Melon\source\repos\efiboot\DeviceDisk.cpp(238,23): warning C4018: “<”: 有符号/无符号不匹配
   efiboot.cpp
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(226,23): warning C4018: “<”: 有符号/无符号不匹配
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(234,23): warning C4129: “.”: 不可识别的字符转义序列
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(294,29): warning C4244: “初始化”: 从“LONGLONG”转换到“int”，可能丢失数据
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(335,5): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(642,96): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(228,23): warning C4018: “<”: 有符号/无符号不匹配
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(236,23): warning C4129: “.”: 不可识别的字符转义序列
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(296,29): warning C4244: “初始化”: 从“LONGLONG”转换到“int”，可能丢失数据
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(337,5): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(465,96): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(480,95): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(482,99): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(484,100): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+  wingetopt.cpp
+C:\Users\Big-Melon\source\repos\efiboot\wingetopt.cpp(32,14): warning C5033: “register”不再为受支持的存储类
+C:\Users\Big-Melon\source\repos\efiboot\wingetopt.cpp(33,14): warning C5033: “register”不再为受支持的存储类
+  stdafx.cpp
+  DevicePath.cpp
+C:\Users\Big-Melon\source\repos\efiboot\uefi\DevicePath.cpp(52,67): warning C4267: “=”: 从“size_t”转换到“UINT8”，可能丢失数据
+  DiskInfo.cpp
+  EFIFunctions.cpp
+C:\Users\Big-Melon\source\repos\efiboot\uefi\EFIFunctions.cpp(171,3): warning C4244: “=”: 从“unsigned __int64”转换到“UINT16”，可能丢失数据
+  efiparser.cpp
+C:\Users\Big-Melon\source\repos\efiboot\uefi\efiparser.cpp(158,8): warning C4101: “pG”: 未引用的局部变量
+  HelperFunctions.cpp
+C:\Users\Big-Melon\source\repos\efiboot\uefi\HelperFunctions.cpp(20,1): warning C4267: “return”: 从“size_t”转换到“int”，可能丢失数据
+  Win32UEFI.cpp
+  正在生成代码...
+    正在创建库 C:\Users\Big-Melon\source\repos\efiboot\x64\Debug\efiboot.lib 和对象 C:\Users\Big-Melon\source\repos\efiboot\x64\Debug\efiboot.exp
   efiboot.vcxproj -> C:\Users\Big-Melon\source\repos\efiboot\x64\Debug\efiboot.exe
