@@ -7,6 +7,7 @@
 
 #include <string>
 #include <sstream>
+
 using std::hex;
 using std::stringstream;
 
@@ -18,19 +19,22 @@ using std::stringstream;
 //********************************************************
 
 #define OPT_LEN 50
-#define OPT_COUNT 6
+#define OPT_COUNT 8
 
 
 #define BOOTORDER 0
 #define BOOTOPTION 1
 #define ALL 2
+#define ADD 3
 char arg[OPT_COUNT][OPT_LEN] = {
     "--BootOrder",
     "--bootorder",
     "--BootOption",
     "--bootoption",
     "--ALL",
-    "--all"
+    "--all",
+    "--Add",
+    "--add"
 };
 
 
@@ -44,6 +48,7 @@ static int EFI_FindItem(char* str) {
     if (0 == Item_pos || 1 == Item_pos) Item_pos = BOOTORDER;
     if (2 == Item_pos || 3 == Item_pos) Item_pos = BOOTOPTION;
     if (4 == Item_pos || 5 == Item_pos) Item_pos = ALL;
+    if (6 == Item_pos || 7 == Item_pos) Item_pos = ADD;
     return Item_pos; //-1:未在参数数组中找到对应参数。
 }
 
@@ -137,12 +142,204 @@ struct EFI_Disk_Info {
     std::string number;
 };
 
-static struct DevInterfaceDetaillArray DevIn = { 0 };
+struct EFI_Vol_Info {
+    std::wstring system;
+    std::wstring length;
+    std::wstring name;
+};
 
-static struct EFI_Disk_Info * g_efi_disk[] = {NULL};
+//static struct DevInterfaceDetaillArray DevIn = { 0 };
+
+//static struct EFI_Disk_Info * g_efi_disk[] = {NULL};
 
 #define PARNUM(buf) (UINT32)(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0])
 //#define 
+
+
+static int EFI_GetVolumeInfo(WCHAR * ParName, DWORD ParNum, TCHAR* ParInfo, CHAR* DiskInfo) {
+
+    //定义保存数据的数据结构
+    struct EFI_Disk_Info disk_info_;
+    struct EFI_Vol_Info vol_info_;
+
+
+
+    //获取分区信息：卷标，文件系统格式。
+    //wprintf_s(L"ParName:%s\n", ParName);
+
+    TCHAR VolumeName[1024] = { 0 };
+    TCHAR FileSysName[1024] = { 0 };
+    if (0 == GetVolumeInformation(ParName, VolumeName, 1024, NULL, NULL, NULL, FileSysName, 1024)) {
+        wprintf_s(L"Line:%d Err_Code：%d\n",__LINE__, GetLastError());
+        return -1;
+    }
+    vol_info_.name = std::wstring(VolumeName);
+    vol_info_.system = std::wstring(FileSysName);
+
+
+    //获取硬盘信息
+
+    //获取分区所在硬盘
+
+
+    TCHAR Buf_Par_Name[1024] = { 0 };
+    memcpy(Buf_Par_Name, ParName, wstrlen(ParName)-4); //构建分区设备，用于createfile打开分区。
+    //wprintf_s(L"    Line:%d ParName:%s\n",__LINE__, Buf_Par_Name);
+    HANDLE h_vol = INVALID_HANDLE_VALUE;
+    h_vol = CreateFile(Buf_Par_Name,
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (INVALID_HANDLE_VALUE == h_vol) {
+        wprintf_s(L"Line:%d Err_Code：%d\n",__LINE__, GetLastError());
+        return -1;
+    }
+
+    DWORD dwOutBytes = 0;
+    PVOLUME_DISK_EXTENTS vol_disk_info = (PVOLUME_DISK_EXTENTS)new BYTE[sizeof(VOLUME_DISK_EXTENTS) + sizeof(DISK_EXTENT) * 10];
+    ZeroMemory(vol_disk_info, sizeof(VOLUME_DISK_EXTENTS) + sizeof(DISK_EXTENT) * 10);
+    if (!DeviceIoControl(h_vol,
+        IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
+        NULL, 0,
+        vol_disk_info, sizeof(VOLUME_DISK_EXTENTS) + sizeof(DISK_EXTENT) * 10,
+        &dwOutBytes,
+        NULL)
+        ) {
+
+        wprintf_s(L"DeviceIoControl Error! line:%d Error_Code:%d %d\n",__LINE__, GetLastError(), dwOutBytes);
+
+    }
+
+    CloseHandle(h_vol);
+
+
+
+    //硬盘信息相关
+    if (vol_disk_info->NumberOfDiskExtents > 1) {
+        wprintf_s(L"Line:%d 不支持解析一个分区跨越两个硬盘！\n",__LINE__);
+        return -1;
+    }
+
+    DWORD* disk_num = (PDWORD)new DWORD[vol_disk_info->NumberOfDiskExtents];
+
+    for (int i = 0; i < vol_disk_info->NumberOfDiskExtents; i++) {
+        disk_num[i] = vol_disk_info->Extents[i].DiskNumber;
+    }
+
+    
+
+    //构建硬盘路径
+    TCHAR hd_name[512] = { 0 };
+    wsprintf(hd_name, L"\\\\\.\\PhysicalDrive%d", disk_num[0]);
+    //wprintf_s(L"hd_name:%s\n", hd_name);
+    
+    HANDLE h_disk = NULL;
+        h_disk = CreateFile(hd_name,
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL, NULL);
+
+        
+        
+        
+        
+        //获取硬盘的生产商productor，销售商vendor，硬盘版本version等信息。
+        PSTORAGE_DEVICE_DESCRIPTOR pDevDesc;
+        pDevDesc = (PSTORAGE_DEVICE_DESCRIPTOR)new BYTE[sizeof(STORAGE_DEVICE_DESCRIPTOR) + 512 - 1];
+        ZeroMemory(pDevDesc, sizeof(STORAGE_DEVICE_DESCRIPTOR) + 512 - 1);
+        pDevDesc->Size = sizeof(STORAGE_DEVICE_DESCRIPTOR) + 512 - 1;
+
+        STORAGE_PROPERTY_QUERY Query;
+        Query.PropertyId = StorageDeviceProperty;
+        Query.QueryType = PropertyStandardQuery;
+
+        if (!DeviceIoControl(h_disk,
+            IOCTL_STORAGE_QUERY_PROPERTY,
+            &Query, sizeof(STORAGE_PROPERTY_QUERY),
+            pDevDesc, pDevDesc->Size,
+            &dwOutBytes,
+            NULL)
+            ) {
+            wprintf_s(L"DeviceIoControl Error! line:%d Error_Code:%d %d\n", __LINE__, GetLastError(), dwOutBytes);
+
+        }
+
+        char* p_char_string = (char*)pDevDesc;
+        
+        disk_info_.productor = std::string(&p_char_string[pDevDesc->ProductIdOffset]);
+        disk_info_.version = std::string(&p_char_string[pDevDesc->ProductRevisionOffset]);
+        disk_info_.vendor = std::string(&p_char_string[pDevDesc->VendorIdOffset]);
+
+
+
+
+        //获取硬盘容量
+
+        GET_LENGTH_INFORMATION disk_len = { 0 };
+
+        if (!DeviceIoControl(h_disk, IOCTL_DISK_GET_LENGTH_INFO,
+            NULL,
+            0,
+            &disk_len, sizeof(disk_len), &dwOutBytes, NULL)) {
+
+            wprintf_s(L"DeviceIoControl Error! line:%d Error_Code:%d %d\n",__LINE__, GetLastError(), dwOutBytes); //122是正常的。
+
+        }
+
+        stringstream sz_buffer;
+
+        int buffer_disk_len = disk_len.Length.QuadPart / 1024 / 1024 / 1024;
+
+        sz_buffer << buffer_disk_len << "GB";
+
+        disk_info_.length = sz_buffer.str();
+
+        disk_info_.number = std::to_string(disk_num[0]);
+
+        //硬盘信息获取完毕。
+
+
+        //下面获取分区容量
+
+        DWORD sizePar = sizeof(DRIVE_LAYOUT_INFORMATION_EX) + sizeof(PARTITION_INFORMATION_EX) * 128;
+        PDRIVE_LAYOUT_INFORMATION_EX ParTable = (PDRIVE_LAYOUT_INFORMATION_EX)new BYTE[sizePar];
+        ZeroMemory(ParTable, sizePar);
+
+        if (!DeviceIoControl(h_disk,
+            IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
+            NULL,
+            0,
+            ParTable,
+            sizePar,
+            &dwOutBytes,
+            NULL)) {
+
+            wprintf_s(L"DeviceIoControl Error! line:%d Error_Code:%d %d\n",__LINE__, GetLastError(), dwOutBytes);
+
+        }
+        TCHAR vol_length[512] = { 0 };
+        wsprintf(vol_length,L"%dMB", ParTable->PartitionEntry[ParNum-1].PartitionLength.QuadPart / 1024 / 1024);  //ParNum是分区号，分区号从1开始，但是这里分区入口是一个数组，所以分区1对应0号数组元素。
+        vol_info_.length = std::wstring(vol_length);
+
+    delete vol_disk_info;
+    delete disk_num;
+    delete pDevDesc;
+    delete ParTable;
+
+    //返回分区信息
+    wsprintf(ParInfo, L"%d(%s,%s,%s)",ParNum ,vol_info_.system.c_str(), vol_info_.name.c_str(), vol_info_.length.c_str());
+    //返回硬盘信息
+    sprintf(DiskInfo, "HD%s:%s%s%s", disk_info_.number.c_str(), disk_info_.vendor.c_str(), disk_info_.productor.c_str(), disk_info_.length.c_str());
+
+
+    return 0;
+}
+
 
 static int EFI_GetBootEntry(LPCWSTR lpBootEntry) {
     if (!efi_init()) return -1;
@@ -159,15 +356,17 @@ static int EFI_GetBootEntry(LPCWSTR lpBootEntry) {
     }
     //wprintf_s(lpBootEntry);
     //wprintf_s(L":");
-    wprintf_s(L"    Attributre:0x%08x\n", lpBoot_Entry->Attributes);
+    //wprintf_s(L"    Attributre:0x%08x\n", lpBoot_Entry->Attributes);
     wprintf_s(L"    BootName:%s\n", lpBoot_Entry->Description);
     wprintf_s(L"    BootEntryID:%04x\n", lpBoot_Entry->LoadOptionIndex);
-    HARDDRIVE_DEVICE_PATH* hd = (HARDDRIVE_DEVICE_PATH*)(lpBoot_Entry->FilePathList);
+    //wprintf_s(L"    FilePathLength:%d\n", lpBoot_Entry->FilePathListLength);
+    HARDDRIVE_DEVICE_PATH * hd = (HARDDRIVE_DEVICE_PATH *)(lpBoot_Entry->FilePathList);
+    FILEPATH_DEVICE_PATH* fd = (FILEPATH_DEVICE_PATH *)((char*)(lpBoot_Entry->FilePathList) + 42);
     UINT8 ParNumArray[4] = { (hd->PartitionNumber)&0xFF ,(hd->PartitionNumber>>8)&0xFF,(hd->PartitionNumber >> 16) & 0xFF ,(hd->PartitionNumber >> 24) & 0xFF };
-    wprintf_s(L"    ParNum:%d\n", PARNUM(ParNumArray));
-    wprintf_s(L"    ParFormat:%d\n", hd->PartitionFormat);
-    wprintf_s(L"    ParSigType:%d\n", hd->SignatureType);
-    wprintf_s(L"    ParSignature:{%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
+    //wprintf_s(L"    ParNum:%d\n", PARNUM(ParNumArray));
+    //wprintf_s(L"    ParFormat:%d\n", hd->PartitionFormat);
+    //wprintf_s(L"    ParSigType:%d\n", hd->SignatureType);
+    /*wprintf_s(L"    ParSignature:{%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
         hd->Signature[3],
         hd->Signature[2],
         hd->Signature[1],
@@ -183,11 +382,39 @@ static int EFI_GetBootEntry(LPCWSTR lpBootEntry) {
         hd->Signature[12],
         hd->Signature[13],
         hd->Signature[14],
+        hd->Signature[15]); */
+    WCHAR ParTitionPath[1024] = { 0 };
+    wsprintf(ParTitionPath, L"\\\\\?\\Volume{%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x}\\",
+        hd->Signature[3],
+        hd->Signature[2],
+        hd->Signature[1],
+        hd->Signature[0],
+        hd->Signature[5],
+        hd->Signature[4],
+        hd->Signature[7],
+        hd->Signature[6],
+        hd->Signature[8],
+        hd->Signature[9],
+        hd->Signature[10],
+        hd->Signature[11],
+        hd->Signature[12],
+        hd->Signature[13],
+        hd->Signature[14],
         hd->Signature[15]);
-    wprintf_s(L"    %x\n", lpBoot_Entry->FilePathList);
+
+    TCHAR ParInfo[1024] = { 0 };
+    CHAR DiskInfo[1024] = { 0 };
+    EFI_GetVolumeInfo(ParTitionPath, PARNUM(ParNumArray), ParInfo, DiskInfo);
+    printf_s("    HardDisk:%s\n", DiskInfo);
+    wprintf_s(L"    Partition:%s\n", ParInfo);
+    //wprintf(L"    File_Device_Length:%d\n", fd->Header.Length[0]);
+    //memcpy(filename, fd->PathName, fd->Header.Length[0]);
+    //wprintf_s(L"    FileName:%s\n", filename);
+    wprintf_s(L"    BootFileName:%s\n", fd->PathName);
+    //wprintf_s(L"    %x\n", lpBoot_Entry->FilePathList);
     //wprintf_s(L"    %s\n", lpBoot_Entry->OptionalData);
 
-    UINT64 a = 0;
+
     return 0;
 }
 
@@ -215,6 +442,7 @@ int main(int argc,char * argv[])
 
     }
 
+    /*
     if (0 != GetALLDISK(&DevIn)) {
         wprintf_s(L"调用GetALLDISK出错！");
         FreeALLDISK(&DevIn);
@@ -396,13 +624,7 @@ int main(int argc,char * argv[])
 
     GetDiskFreeSpace(szPathName, &SectorPerCluster, &BytesPerSector, &NumOfFreeCluster, &TotalNumOfCluster);
     wprintf_s(L"SectorPerCluster:%d\nBytesPerSector:%d\nNumOfFreeCluster:%d\n,TotalNumOfCluster:%d\n", SectorPerCluster,BytesPerSector,NumOfFreeCluster,TotalNumOfCluster);
-
-
-
-
-
-
-    
+    */
 
     while ((arg=GetOpt(argc, argv))!=ARG_POS_END)
     {   
@@ -429,15 +651,20 @@ int main(int argc,char * argv[])
         case ALL:
             std::cout << "ALl\n" << std::endl;
             break;
+        case ADD:
+            std::cout << "ADD Start!\n" << std::endl;
+
+            std::cout << "ADD Done!\n" << std::endl;
         default:
             break;
         }
     }
 
-
+    /*
     for (int freeIndex = 0; freeIndex < devIndex; freeIndex++) {
        delete g_efi_disk[freeIndex];
-    }
+    }*/
+
     return 0;
 #ifdef D_TEST
     system("pause");

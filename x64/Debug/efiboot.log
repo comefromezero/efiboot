@@ -1,11 +1,8 @@
-﻿  efiboot.cpp
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(187,15): warning C4477: “wprintf_s”: 格式字符串“%x”需要类型“unsigned int”的参数，但可变参数 1 拥有了类型“EFI_DEVICE_PATH_PROTOCOL *”
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(187,15): warning C4313: “wprintf_s”: 格式字符串中的“%x”与“EFI_DEVICE_PATH_PROTOCOL *”类型的参数 1 冲突
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(252,33): warning C4018: “<”: 有符号/无符号不匹配
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(321,29): warning C4244: “初始化”: 从“LONGLONG”转换到“int”，可能丢失数据
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(337,19): warning C4477: “wprintf_s”: 格式字符串“%d”需要类型“int”的参数，但可变参数 1 拥有了类型“LONGLONG”
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(337,19): message : 请考虑在格式字符串中使用“%lld”
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(337,19): message : 请考虑在格式字符串中使用“%Id”
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(337,19): message : 请考虑在格式字符串中使用“%I64d”
-C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(422,96): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+﻿cl : 命令行 warning D9025: 正在重写“/sdl”(用“/GS-”)
+  efiboot.cpp
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(226,23): warning C4018: “<”: 有符号/无符号不匹配
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(234,23): warning C4129: “.”: 不可识别的字符转义序列
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(294,29): warning C4244: “初始化”: 从“LONGLONG”转换到“int”，可能丢失数据
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(335,5): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Big-Melon\source\repos\efiboot\efiboot.cpp(642,96): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
   efiboot.vcxproj -> C:\Users\Big-Melon\source\repos\efiboot\x64\Debug\efiboot.exe

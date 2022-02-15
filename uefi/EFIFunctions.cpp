@@ -182,7 +182,7 @@ BOOL MakeMediaBootOption(UINT32 Attributes, WCHAR* Description, WCHAR* DiskLette
 	byteCounter += sizeof(EFI_LOAD_OPTION);
 
 	/* Add Description */
-	memcpy(&EFIbuffer[byteCounter], Description, wstrlen(Description)); //这里为什么不计算\0这个长度呢？
+	memcpy(&EFIbuffer[byteCounter], Description, wstrlen(Description)); //这里为什么不计算\0这个长度呢？,wstrenlen计算了\0
 	byteCounter += wstrlen(Description);
 	/*#### Add FileList ####*/
 
