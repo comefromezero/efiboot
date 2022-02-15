@@ -30,4 +30,8 @@ efiboot --bootoption boot0002
 
 //添加一个boot项
 
-efiboot --add winpe \\\\.\P: \EFI\Boot\bootx64.efi
+efiboot --add winpe \\\\.\P: \EFI\Boot\bootx64.efio
+
+笔记记录：
+
+https://blog.csdn.net/lengye7/article/details/122916415
